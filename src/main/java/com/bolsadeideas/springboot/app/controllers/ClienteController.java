@@ -259,7 +259,7 @@ public class ClienteController {
 				String mensajeFotoEliminar = String.format(messageSource.getMessage("text.cliente.flash.foto.eliminar.success", null, locale), cliente.getFoto());
 				flash.addFlashAttribute("info", mensajeFotoEliminar);
 			}
-			
+		
 		}
 		
 		return "redirect:/listar";
