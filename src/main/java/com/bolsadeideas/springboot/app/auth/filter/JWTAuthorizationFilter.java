@@ -39,7 +39,7 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 
-		String token = request.getHeader("Authorization");
+		String token = request.getHeader("Authrorization");
 
 		if (!requiresAuthentication(token)) {
 			chain.doFilter(request, response);
@@ -51,7 +51,7 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 		try {
 
 			claimsToken = Jwts.parserBuilder().
-					setSigningKey(SECRET_KEY).build()
+					setSigningKey(JWTAuthenticationFilter.SECRET_KEY).build()
 					.parseClaimsJws(token.replace("Bearer ", ""))
 					.getBody();
 
