@@ -1,8 +1,6 @@
 package com.bolsadeideas.springboot.app.auth.filter;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
 
 import javax.crypto.SecretKey;
 import javax.servlet.FilterChain;
@@ -12,17 +10,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
-import com.bolsadeideas.springboot.app.auth.SimpleGrantedAuthoritiesMixin;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.bolsadeideas.springboot.app.auth.service.JWTService;
+import com.bolsadeideas.springboot.app.auth.service.JWTServiceImpl;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
@@ -30,8 +23,11 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 
 	public static final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS512);
 
-	public JWTAuthorizationFilter(AuthenticationManager authenticationManager) {
+	private JWTService jwtService;
+	
+	public JWTAuthorizationFilter(AuthenticationManager authenticationManager, JWTService jwtService) {
 		super(authenticationManager);
+		this.jwtService = jwtService;
 
 	}
 
@@ -39,39 +35,20 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 
-		String token = request.getHeader("Authrorization");
+		String token = request.getHeader(JWTServiceImpl.HEADER_STRING);
 
 		if (!requiresAuthentication(token)) {
 			chain.doFilter(request, response);
 			return;
 		}
 
-		boolean tokenValido;
-		Claims claimsToken = null;
-		try {
-
-			claimsToken = Jwts.parserBuilder().
-					setSigningKey(JWTAuthenticationFilter.SECRET_KEY).build()
-					.parseClaimsJws(token.replace("Bearer ", ""))
-					.getBody();
-
-			tokenValido = true;
-		} catch (JwtException | IllegalArgumentException e) {
-			
-			tokenValido = false;
-		}
+		
 
 		UsernamePasswordAuthenticationToken authentication = null;
 		
-		if (tokenValido) {
-			String username = claimsToken.getSubject();
-			Object roles = claimsToken.get("authorities"); 
+		if (jwtService.validate(token)) {
 			
-			Collection<? extends GrantedAuthority> authorities = Arrays.asList(new ObjectMapper()
-					.addMixIn(SimpleGrantedAuthority.class, SimpleGrantedAuthoritiesMixin.class)
-					.readValue(roles.toString().getBytes(), SimpleGrantedAuthority[].class));
-			
-			authentication = new UsernamePasswordAuthenticationToken(username, null, authorities);
+			authentication = new UsernamePasswordAuthenticationToken(jwtService.getUsername(token), null, jwtService.getRoles(token));
 		} 
 		
 		SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -81,7 +58,7 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 
 	protected boolean requiresAuthentication(String token) {
 
-		if (token == null || !token.startsWith("Bearer ")) {
+		if (token == null || !token.startsWith(JWTServiceImpl.TOKEN_PREFIX)) {
 			return false;
 		}
 		return true;

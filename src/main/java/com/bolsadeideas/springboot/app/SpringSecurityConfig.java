@@ -10,6 +10,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 
 import com.bolsadeideas.springboot.app.auth.filter.JWTAuthenticationFilter;
 import com.bolsadeideas.springboot.app.auth.filter.JWTAuthorizationFilter;
+import com.bolsadeideas.springboot.app.auth.service.JWTService;
 //import com.bolsadeideas.springboot.app.auth.handler.LoginSuccessHandler;
 import com.bolsadeideas.springboot.app.models.service.JpaUserDetailsService;
 
@@ -22,6 +23,9 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 	
 	@Autowired
 	private JpaUserDetailsService userDetailsService;
+	
+	@Autowired
+	private JWTService jwtService;
 
 	
 	@Override
@@ -39,8 +43,8 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 		.and()
 		.exceptionHandling().accessDeniedPage("/error_403")*/
 		.and()
-		.addFilter(new JWTAuthenticationFilter(authenticationManager()))
-		.addFilter(new JWTAuthorizationFilter(authenticationManager()))
+		.addFilter(new JWTAuthenticationFilter(authenticationManager(), jwtService))
+		.addFilter(new JWTAuthorizationFilter(authenticationManager(), jwtService))
 		.csrf().disable() // csrf se desabilita porque se va a utilizar la protección de jwt, es mas que todo cuando se trabaja con formularios de spring
 		.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS); 
 	}
